@@ -78,6 +78,16 @@ func (a *initAppender) AppendHistogram(ref storage.SeriesRef, l labels.Labels, t
 	return a.app.AppendHistogram(ref, l, t, h, fh)
 }
 
+func (a *initAppender) AppendHistogramCTZeroSample(ref storage.SeriesRef, l labels.Labels, t, ct int64, h *histogram.Histogram, fh *histogram.FloatHistogram) (storage.SeriesRef, error) {
+	if a.app != nil {
+		return a.app.AppendHistogramCTZeroSample(ref, l, t, ct, h, fh)
+	}
+	a.head.initTime(t)
+	a.app = a.head.appender()
+
+	return a.app.AppendHistogramCTZeroSample(ref, l, t, ct, h, fh)
+}
+
 func (a *initAppender) UpdateMetadata(ref storage.SeriesRef, l labels.Labels, m metadata.Metadata) (storage.SeriesRef, error) {
 	if a.app != nil {
 		return a.app.UpdateMetadata(ref, l, m)
@@ -670,6 +680,11 @@ func (a *headAppender) AppendHistogram(ref storage.SeriesRef, lset labels.Labels
 	}
 
 	return storage.SeriesRef(s.ref), nil
+}
+
+func (a *headAppender) AppendHistogramCTZeroSample(ref storage.SeriesRef, l labels.Labels, t, ct int64, h *histogram.Histogram, fh *histogram.FloatHistogram) (storage.SeriesRef, error) {
+	//TODO: Implement this.
+	return 0, nil
 }
 
 // UpdateMetadata for headAppender assumes the series ref already exists, and so it doesn't

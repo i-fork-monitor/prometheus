@@ -1634,24 +1634,32 @@ loop:
 		if seriesAlreadyScraped {
 			err = storage.ErrDuplicateSampleForTimestamp
 		} else {
-			if ctMs := p.CreatedTimestamp(); sl.enableCTZeroIngestion && ctMs != nil {
-				ref, err = app.AppendCTZeroSample(ref, lset, t, *ctMs)
+			if ctMs := p.CreatedTimestamp(); ctMs != nil {
+				if isHistogram {
+					if h != nil {
+						ref, err = app.AppendHistogramCTZeroSample(ref, lset, t, *ctMs, h, nil)
+					} else {
+						ref, err = app.AppendHistogramCTZeroSample(ref, lset, t, *ctMs, nil, fh)
+					}
+				} else {
+					ref, err = app.AppendCTZeroSample(ref, lset, t, *ctMs)
+				}
 				if err != nil && !errors.Is(err, storage.ErrOutOfOrderCT) { // OOO is a common case, ignoring completely for now.
 					// CT is an experimental feature. For now, we don't need to fail the
 					// scrape on errors updating the created timestamp, log debug.
 					level.Debug(sl.l).Log("msg", "Error when appending CT in scrape loop", "series", string(met), "ct", *ctMs, "t", t, "err", err)
 				}
 			}
+		}
 
-			if isHistogram && sl.enableNativeHistogramIngestion {
-				if h != nil {
-					ref, err = app.AppendHistogram(ref, lset, t, h, nil)
-				} else {
-					ref, err = app.AppendHistogram(ref, lset, t, nil, fh)
-				}
+		if isHistogram {
+			if h != nil {
+				ref, err = app.AppendHistogram(ref, lset, t, h, nil)
 			} else {
-				ref, err = app.Append(ref, lset, t, val)
+				ref, err = app.AppendHistogram(ref, lset, t, nil, fh)
 			}
+		} else {
+			ref, err = app.Append(ref, lset, t, val)
 		}
 
 		if err == nil {

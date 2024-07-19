@@ -55,6 +55,10 @@ func (a nopAppender) AppendHistogram(storage.SeriesRef, labels.Labels, int64, *h
 	return 0, nil
 }
 
+func (a nopAppender) AppendHistogramCTZeroSample(ref storage.SeriesRef, l labels.Labels, t, ct int64, h *histogram.Histogram, fh *histogram.FloatHistogram) (storage.SeriesRef, error) {
+	return 0, nil
+}
+
 func (a nopAppender) UpdateMetadata(storage.SeriesRef, labels.Labels, metadata.Metadata) (storage.SeriesRef, error) {
 	return 0, nil
 }
@@ -152,6 +156,17 @@ func (a *collectResultAppender) AppendHistogram(ref storage.SeriesRef, l labels.
 	}
 
 	return a.next.AppendHistogram(ref, l, t, h, fh)
+}
+
+func (a *collectResultAppender) AppendHistogramCTZeroSample(ref storage.SeriesRef, l labels.Labels, t, ct int64, h *histogram.Histogram, fh *histogram.FloatHistogram) (storage.SeriesRef, error) {
+	if h != nil {
+		zeroHistogram := &histogram.Histogram{Count: 0, Sum: 0, Schema: 3, ZeroThreshold: 0.0, ZeroCount: 0}
+		return a.AppendHistogram(ref, l, ct, zeroHistogram, nil)
+	}
+
+	zeroFloatHistogram := &histogram.FloatHistogram{Count: 0, Sum: 0, Schema: 3, ZeroThreshold: 0.0, ZeroCount: 0}
+	return a.AppendHistogram(ref, l, ct, nil, zeroFloatHistogram)
+
 }
 
 func (a *collectResultAppender) UpdateMetadata(ref storage.SeriesRef, l labels.Labels, m metadata.Metadata) (storage.SeriesRef, error) {
